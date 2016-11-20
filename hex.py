@@ -1,4 +1,4 @@
-# import os
+import os
 import random
 import time
 from threading import Thread
@@ -30,7 +30,7 @@ class Font:
 
 	def __init__(self):
 		pygame.font.init()
-		self.font = pygame.font.Font("cubicfive10.ttf", 20)
+		self.font = pygame.font.Font(os.path.normpath(os.path.join(os.path.abspath(os.curdir),"cubicfive10.ttf")), 20)
 
 	def render(self, text):
 		return self.font.render(text, False, BLACK)
@@ -80,13 +80,14 @@ class Hexagon:
 
 class Table:
 
-	def __init__(self, display, number_of_hexagons, xoffset):
+	def __init__(self, display, number_of_hexagons, xoffset, mark_action):
 		self.display = display
 		self.number_of_hexagons = number_of_hexagons
 		self.rect_width = LONG*number_of_hexagons*1.42
 		self.rect_height = LONG*number_of_hexagons
 		self.xoffset = 2*self.rect_width + xoffset
 		self.id_limit = 0
+		self.mark_action = mark_action
 		self.start()
 		
 	def start(self):
@@ -174,11 +175,13 @@ class Table:
 					#print("Processing rl event")
 					hr.color = hl.color
 					hr.marked = hl.marked
+					self.mark_action(hl)
 					won = self.solve(hl.id)
 				if rr:
 					#print("Processing rr event")
 					hl.color = hr.color
 					hl.marked = hr.marked
+					self.mark_action(hr)
 					won = self.solve(hr.id)
 			hl.draw()
 			hr.draw()
@@ -230,26 +233,29 @@ class Table:
 		return False
 			
 class Timer:
-	def __init__(self, duration, step, update_action, expiry_action):
+	def __init__(self, duration, step, update_action, expiry_action, start_time):
 		self.duration = duration
 		self.step = step
 		self.update_action = update_action
 		self.expiry_action = expiry_action
+		self.start_time = start_time
 		
 	def format_time(self, time_s):
-		return str(str(time_s//60)+":"+str(time_s%60))
+		return "{:03d}:{:02d}".format(time_s//60, time_s%60)
 	
 	def __str__(self):
 		return self.format_time(self.duration)
 
-	def update(self):
+	def update(self, current_time):
 		if self.duration <= 0:
 			self.expiry_action()
 			return False
-		else:
+		elif (abs(current_time - self.start_time) >= self.step):
+			start_time = current_time
 			self.update_action(self)
 			self.duration -= self.step
 			return True
+		return True
 	
 class display:
 	def __init__(self):
@@ -258,18 +264,34 @@ class display:
 		self.clock = pygame.time.Clock()
 		self.number_of_hexagons = 6
 		# os.environ["SDL_VIDEO_CENTERED"] = "1"
-		self.width = LONG*64
+		self.width = LONG*196
 		self.height = LONG*self.number_of_hexagons*3
 		self.display = pygame.display.set_mode((self.width, self.height))
 		self.won = True
 		self.color = None
 		self.xoffset = 400
-		self.table = Table(self.display, self.number_of_hexagons, self.xoffset)
+		self.table = Table(self.display, self.number_of_hexagons, self.xoffset, self.mark_action)
 		self.font = Font()
-		self.timers = [Timer(10, 1, self.handleTimerEvent, self.handleTimerExpiry)]
-		self.min_sleep = min([self.timers[i].step for i in range(len(self.timers))])
-		pygame.time.set_timer(TICK_EVENT, self.min_sleep*1000)
+		self.text_width = 0
+		self.timer_text_loc = (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2))
+		self.timers = []
+		self.add_timer(Timer(10, 1, self.handleTimerEvent, self.handleTimerExpiry, time.clock())) #for testing only
+		self.display.fill(WHITE)
 		self.main()		   
+
+	def add_timer(self, timer):
+		self.timers.append(timer)
+		self.set_timer()
+	
+	def set_timer(self):
+		pygame.time.set_timer(TICK_EVENT, self.min_sleep()*1000)
+		
+	def min_sleep(self):
+		return min([self.timers[i].step for i in range(len(self.timers))])
+		
+	def mark_action(self, hexagon):
+		# do somethng here if a cell is marked
+		pass
 
 	def min(sequence):
 		low = sequence[0]
@@ -278,23 +300,26 @@ class display:
 				low = i
 		return low
 
-	def handleTimerEvent(self, timer):
-		timer_text = self.font.render(str(timer))
-		self.display.fill(WHITE)
-		self.display.blit(timer_text, (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2)))
+	def draw_text(self, raw_text, text_loc):
+		tmp_size = self.font.font.size(raw_text)
+		if tmp_size[0] > self.text_width:
+			self.text_width = tmp_size[0]
+		size = (self.text_width, tmp_size[1])
+		timer_text = self.font.render(raw_text)
+		self.display.fill(WHITE, (text_loc[0], text_loc[1], size[0], size[1]))
+		self.display.blit(timer_text, text_loc)
 		pygame.display.update()
+		
+	def handleTimerEvent(self, timer):
+		self.draw_text(str(timer), self.timer_text_loc)
 	
 	def handleTimerExpiry(self):
-		timer_text = self.font.render("Timer expired")
-		#print("Timer expired")
-		self.display.fill(WHITE)
-		self.display.blit(timer_text, (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2)))
-		pygame.display.update()
+		self.draw_text("Timer Expired", self.timer_text_loc)
 	
 	def main(self):
 		global RUN
 		while RUN:
-			self.display.fill(WHITE, (0, 0, 4*self.table.rect_width+self.xoffset, 2*self.table.rect_height))
+			self.display.fill(WHITE, (0, 0, 4*self.table.rect_width+self.xoffset, 2*(self.table.rect_height+1)))
 			# display			
 			pygame.event.pump()
 			if not self.won:
@@ -340,7 +365,7 @@ class display:
 			if event.type == TICK_EVENT:
 				timers_bk = self.timers.copy()
 				for timer in timers_bk:
-					if not timer.update():
+					if not timer.update(time.clock()):
 						timers_bk.remove(timer)
 				self.timers = timers_bk
 			if event.type == pygame.QUIT:
