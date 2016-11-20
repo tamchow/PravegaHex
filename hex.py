@@ -93,6 +93,8 @@ class Table:
 	def start(self):
 		self.hexagons = {}
 		self.id = 0
+		# start suspension of a player from playing once he gets a question until the question is answered correctly or the timer expires
+		self.l_player_suspend, self.r_player_suspend = False, False
 		dx = LONG
 		dy = LONG*self.number_of_hexagons
 		# Table
@@ -158,9 +160,9 @@ class Table:
 		lclick, rclick = False, False
 		# if(event.type == pygame.MOUSEBUTTONDOWN):
 			# lclick, rclick = (event.button == LEFT), (event.button == RIGHT)
-		if x > self.xoffset:
+		if x > self.xoffset and (not self.r_player_suspend):
 			rclick = True
-		elif x <= self.xoffset:
+		elif x <= self.xoffset and (not self.l_player_suspend):
 			lclick = True
 		won = None
 		for (id, hl) in self.hexagons.items():
