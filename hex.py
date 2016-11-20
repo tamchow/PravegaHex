@@ -30,7 +30,7 @@ class Font:
 
 	def __init__(self):
 		pygame.font.init()
-		self.font = pygame.font.Font(os.path.normpath(os.path.join(os.path.abspath(os.curdir),"cubicfive10.ttf")), 20)
+		self.font = pygame.font.Font("cubicfive10.ttf", 20)
 
 	def render(self, text):
 		return self.font.render(text, False, BLACK)
@@ -83,8 +83,8 @@ class Table:
 	def __init__(self, display, number_of_hexagons, xoffset, mark_action):
 		self.display = display
 		self.number_of_hexagons = number_of_hexagons
-		self.rect_width = LONG*number_of_hexagons*1.42
-		self.rect_height = LONG*number_of_hexagons
+		self.rect_width = LONG*number_of_hexagons*1.421
+		self.rect_height = LONG*number_of_hexagons+1
 		self.xoffset = 2*self.rect_width + xoffset
 		self.id_limit = 0
 		self.mark_action = mark_action
@@ -260,22 +260,26 @@ class Timer:
 class display:
 	def __init__(self):
 		pygame.init()
-		pygame.display.set_caption("Hex")
+		pygame.display.set_caption("Pravega Hex")
+		icon = pygame.image.load("dna-icon.png")
+		pygame.display.set_icon(icon)
 		self.clock = pygame.time.Clock()
 		self.number_of_hexagons = 6
 		# os.environ["SDL_VIDEO_CENTERED"] = "1"
-		self.width = LONG*196
+		self.width = LONG*54
 		self.height = LONG*self.number_of_hexagons*3
 		self.display = pygame.display.set_mode((self.width, self.height))
 		self.won = True
 		self.color = None
-		self.xoffset = 400
+		self.xoffset = 560
 		self.table = Table(self.display, self.number_of_hexagons, self.xoffset, self.mark_action)
 		self.font = Font()
 		self.text_width = 0
-		self.timer_text_loc = (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2))
 		self.timers = []
+		# <timer_test>
+		self.timer_text_loc = (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2))
 		self.add_timer(Timer(10, 1, self.handleTimerEvent, self.handleTimerExpiry, time.clock())) #for testing only
+		# </timer_test>
 		self.display.fill(WHITE)
 		self.main()		   
 
@@ -290,7 +294,7 @@ class display:
 		return min([self.timers[i].step for i in range(len(self.timers))])
 		
 	def mark_action(self, hexagon):
-		# do somethng here if a cell is marked
+		# do something here if a cell is marked
 		pass
 
 	def min(sequence):
