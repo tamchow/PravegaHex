@@ -1,19 +1,20 @@
 # import os
 import random
+import time
 from threading import Thread
 import pygame
+from pygame.locals import USEREVENT
 
 # constants
 RUN = True
 LONG = 40
 YELLOW = (255, 231, 0)
-FOCUS_COLOR = (50,125,50)
 BLUE = (0, 127, 245)
 WHITE = (255,255,255)
 BLACK = (0,0,0)
 LEFT = 1
 RIGHT = 3
-COLOR_PLAYER_CLEAR = FOCUS_COLOR
+TICK_EVENT = USEREVENT+1
 player = random.choice((BLUE, YELLOW))
 
 def check_player(lp, rp):
@@ -50,7 +51,7 @@ class Hexagon:
 		# coordinates of centre
 		self.x = x
 		self.y = y
-		#self.rendered_id = Font().render(str(id))
+		self.rendered_id = Font().render(str(id))
 		self.rect = pygame.Rect(self.x - self.d/2 - 4, self.y - self.d, self.d + 8, self.d*2)
 
 	def draw(self):
@@ -62,29 +63,19 @@ class Hexagon:
 			  (self.x - self.d/2, self.y + self.d)]
 		pygame.draw.polygon(self.display, self.color, pl)
 		pygame.draw.polygon(self.display, (100,100,100), pl, 3)
-		#self.display.blit(self.rendered_id,(self.x,self.y))
+		self.display.blit(self.rendered_id,(self.x,self.y))
 
 	def update(self, x, y, lp, rp):
 		c = self.rect.collidepoint(x, y)
-		if c:
-			if (lp or rp) and self.color == COLOR_PLAYER_CLEAR:
+		if c and (lp or rp)  and (not self.marked) and self.color == WHITE:
 				check_player(lp, rp)
 				self.mark()
-				return 1
-			return 2
-		return 0
+				return True
+		return False
 		
 	def mark(self):
 		self.color = player
 		self.marked = True
-			
-	def focus(self):
-		if not self.marked:
-			self.color = COLOR_PLAYER_CLEAR
-		
-	def defocus(self):
-		if not self.marked:
-			self.color = WHITE
 
 
 class Table:
@@ -92,13 +83,14 @@ class Table:
 	def __init__(self, display, number_of_hexagons, xoffset):
 		self.display = display
 		self.number_of_hexagons = number_of_hexagons
-		self.xoffset = xoffset
+		self.rect_width = LONG*number_of_hexagons*1.42
+		self.rect_height = LONG*number_of_hexagons
+		self.xoffset = 2*self.rect_width + xoffset
 		self.id_limit = 0
 		self.start()
 		
 	def start(self):
 		self.hexagons = {}
-		self.focus = None
 		self.id = 0
 		dx = LONG
 		dy = LONG*self.number_of_hexagons
@@ -110,7 +102,7 @@ class Table:
 				self.id += 1
 				blue_start, blue_end, yellow_start, yellow_end = self.edge(self.id)
 				self.hexagons[self.id] = Hexagon(self.display, x, y, self.id, blue_start, blue_end, yellow_start, yellow_end)
-		self.id_limit = self.id	- 1
+		self.id_limit = self.id
 		for i in range(self.number_of_hexagons):
 			for e in range(self.number_of_hexagons):
 				x = dx + LONG*(e + i)*1.5 + self.xoffset
@@ -120,6 +112,8 @@ class Table:
 				self.hexagons[self.id] = Hexagon(self.display, x, y, self.id, blue_start, blue_end, yellow_start, yellow_end)
 				
 	def edge(self, id):
+		if id > self.id_limit:
+			id = id - self.id_limit
 		# corner <
 		if id == 1:
 			return True, False, True, False
@@ -149,61 +143,45 @@ class Table:
 			return False, False, False, False
 
 	def draw(self):
-		xoffset = self.xoffset
-		pygame.draw.rect(self.display, YELLOW, (0, 0, LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons))
-		pygame.draw.rect(self.display, BLUE, (LONG*self.number_of_hexagons*1.5, 0, LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons))
-		pygame.draw.rect(self.display, BLUE, (0, LONG*self.number_of_hexagons, LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons))
-		pygame.draw.rect(self.display, YELLOW, (LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons, LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons))	
+		pygame.draw.rect(self.display, YELLOW, (0, 0, self.rect_width, self.rect_height))
+		pygame.draw.rect(self.display, BLUE, (self.rect_width, 0, self.rect_width, self.rect_height))
+		pygame.draw.rect(self.display, BLUE, (0, self.rect_height, self.rect_width, self.rect_height))
+		pygame.draw.rect(self.display, YELLOW, (self.rect_width, self.rect_height, self.rect_width, self.rect_height))
 		
-		pygame.draw.rect(self.display, YELLOW, (xoffset, 0, LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons))
-		pygame.draw.rect(self.display, BLUE, ((LONG*self.number_of_hexagons*1.5) + xoffset, 0, LONG*self.number_of_hexagons*1.5, LONG*self.number_of_hexagons))
-		pygame.draw.rect(self.display, BLUE, (xoffset, LONG*self.number_of_hexagons, (LONG*self.number_of_hexagons*1.5), LONG*self.number_of_hexagons))
-		pygame.draw.rect(self.display, YELLOW, ((LONG*self.number_of_hexagons*1.5)+xoffset, LONG*self.number_of_hexagons, (LONG*self.number_of_hexagons*1.5), LONG*self.number_of_hexagons))
+		pygame.draw.rect(self.display, YELLOW, (self.xoffset, 0, self.rect_width, self.rect_height))
+		pygame.draw.rect(self.display, BLUE, (self.rect_width + self.xoffset, 0, self.rect_width, self.rect_height))
+		pygame.draw.rect(self.display, BLUE, (self.xoffset, self.rect_height, self.rect_width, self.rect_height))
+		pygame.draw.rect(self.display, YELLOW, (self.rect_width + self.xoffset, self.rect_height, self.rect_width, self.rect_height))
 		x, y = pygame.mouse.get_pos()		 
 		# event = pygame.event.wait()
 		lclick, rclick = False, False
 		# if(event.type == pygame.MOUSEBUTTONDOWN):
 			# lclick, rclick = (event.button == LEFT), (event.button == RIGHT)
-		if(x>xoffset):
+		if x > self.xoffset:
 			rclick = True
-		elif(x<=xoffset):
+		elif x <= self.xoffset:
 			lclick = True
 		won = None
-		mod_hexagons = {}
-		#print(self.hexagons)
-		for id, hexagon in self.hexagons.items():
-			hexagon_right = self.hexagons[self.id_limit+id]
-			if(id>self.id_limit):
-				break
+		for (id, hl) in self.hexagons.items():
+			if id > self.id_limit:
+				hr = self.hexagons[id - self.id_limit]
 			else:
-				if hexagon.marked:
-					print("Adding LHex\n")
-					mod_hexagons[id] = hexagon
-				elif hexagon_right.marked:
-					print("Adding RHex\n")
-					mod_hexagons[id] = hexagon_right
-				elif ((not hexagon.marked) and (not hexagon_right.marked)):
-					mod_hexagons[id] = hexagon
-		#self.hexagons = mod_hexagons
-		#print(mod_hexagons)
-		for hl in self.hexagons.values():
-			#hr = Hexagon(hl.display, hl.x+self.xoffset, hl.y, hl.id, hl.blue_start, hl.blue_end, hl.yellow_start, hl.yellow_end)
+				hr = self.hexagons[self.id_limit + id]
 			rl = hl.update(x, y, lclick, rclick)
-			if rl:
-				# mark
-				if rl == 1:
-					self.focus = None
+			rr = hr.update(x, y, lclick, rclick)
+			if rl or rr:
+				if rl:
+					#print("Processing rl event")
+					hr.color = hl.color
+					hr.marked = hl.marked
 					won = self.solve(hl.id)
-				# focus
-				elif rl == 2:
-					if self.focus and self.focus != hl:
-						self.focus.defocus()
-					self.focus = hl
-			if self.focus:
-				self.focus.focus()
-			
+				if rr:
+					#print("Processing rr event")
+					hl.color = hr.color
+					hl.marked = hr.marked
+					won = self.solve(hr.id)
 			hl.draw()
-			#hr.draw()
+			hr.draw()
 		return won
 			
 	def solve(self, id):
@@ -250,56 +228,73 @@ class Table:
 				if self.hexagons[c].yellow_end:
 					return True			   
 		return False
-	
-# class CountDownTimer:
-	# def __init__(self, display, duration_s, step_s, x, y, width, height, back_color, fore_color):
-		# self.display = display
-		# self.duration_s = duration_s
-		# self.step_s = step_s
-		# self.x = x
-		# self.y = y
-		# self.width = width
-		# self.height = height
-		# self.back_color = back_color
-		# self.fore_color = fore_color
-		# self.time_s = duration_s
-	
-	# def format_mm_ss(time_s):
-		# return str(time_s/60+":"+time_s%60)
-	
-	# def draw(self):
-		# disp_time = self.format_mm_ss(self.time_s)
-		# pygame.draw.rect()
-		
-	# def update(self):
-		# self.draw()
-		# if(self.time_s == 0):
-			# return True
-		# else:
-			# self.time_s -= step_s
-			# return False
 			
+class Timer:
+	def __init__(self, duration, step, update_action, expiry_action):
+		self.duration = duration
+		self.step = step
+		self.update_action = update_action
+		self.expiry_action = expiry_action
+		
+	def format_time(self, time_s):
+		return str(str(time_s//60)+":"+str(time_s%60))
+	
+	def __str__(self):
+		return self.format_time(self.duration)
 
+	def update(self):
+		if self.duration <= 0:
+			self.expiry_action()
+			return False
+		else:
+			self.update_action(self)
+			self.duration -= self.step
+			return True
+	
 class display:
-
 	def __init__(self):
 		pygame.init()
 		pygame.display.set_caption("Hex")
 		self.clock = pygame.time.Clock()
 		self.number_of_hexagons = 6
 		# os.environ["SDL_VIDEO_CENTERED"] = "1"
-		self.display = pygame.display.set_mode((LONG*64, LONG*self.number_of_hexagons*3))
+		self.width = LONG*64
+		self.height = LONG*self.number_of_hexagons*3
+		self.display = pygame.display.set_mode((self.width, self.height))
 		self.won = True
 		self.color = None
-		self.xoffset = 1000
+		self.xoffset = 400
 		self.table = Table(self.display, self.number_of_hexagons, self.xoffset)
 		self.font = Font()
+		self.timers = [Timer(10, 1, self.handleTimerEvent, self.handleTimerExpiry)]
+		self.min_sleep = min([self.timers[i].step for i in range(len(self.timers))])
+		pygame.time.set_timer(TICK_EVENT, self.min_sleep*1000)
 		self.main()		   
 
+	def min(sequence):
+		low = sequence[0]
+		for i in sequence:
+			if i < low:
+				low = i
+		return low
+
+	def handleTimerEvent(self, timer):
+		timer_text = self.font.render(str(timer))
+		self.display.fill(WHITE)
+		self.display.blit(timer_text, (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2)))
+		pygame.display.update()
+	
+	def handleTimerExpiry(self):
+		timer_text = self.font.render("Timer expired")
+		#print("Timer expired")
+		self.display.fill(WHITE)
+		self.display.blit(timer_text, (200, 2*self.table.rect_height+((self.height-2*self.table.rect_width)//2)))
+		pygame.display.update()
+	
 	def main(self):
 		global RUN
 		while RUN:
-			self.display.fill(FOCUS_COLOR)
+			self.display.fill(WHITE, (0, 0, 4*self.table.rect_width+self.xoffset, 2*self.table.rect_height))
 			# display			
 			pygame.event.pump()
 			if not self.won:
@@ -342,6 +337,12 @@ class display:
 			self.won = False
 			self.table.start()
 		for event in pygame.event.get():
+			if event.type == TICK_EVENT:
+				timers_bk = self.timers.copy()
+				for timer in timers_bk:
+					if not timer.update():
+						timers_bk.remove(timer)
+				self.timers = timers_bk
 			if event.type == pygame.QUIT:
 				return False
 		return True
