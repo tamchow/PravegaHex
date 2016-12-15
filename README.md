@@ -8,7 +8,7 @@ Hex Game for Pravega Biology
 
 #Installation
 
-1. Ensure the `hex.py` file and the `dna-icon.png` file are in the same folder.
+1. Ensure the `hex.py`, `cubicfive10.ttf` files and the `dna-icon.png` file are in the same folder.
  
  (you can choose to not use the icon file, in that case, comment out the line in `hex.py`'s `main` function which loads the icon)
  
