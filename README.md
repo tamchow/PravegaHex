@@ -24,8 +24,8 @@ Hex Game for Pravega Biology
  
  1. Migrate from hacky screen extension to a proper client-server architecture.
  
- 2. Customizable plyer colors.
+ 2. Customizable player colors.
  
- 3. Make the questions actually work.
+ 3. Make the questions actually work, and put in some real questions.
  
  4. Last but not the least, migrate to Android by translating to Scala/Java as that is cheaper in terms of hardware costs.
