@@ -81,7 +81,8 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
   val rect_width: Double = LENGTH * number_of_hexagons * RECTANGLE_WIDTH_SCALE
   val rect_height: Int = (LENGTH * number_of_hexagons + 1) * RECTANGLE_HEIGHT_SCALE
   val xoffset: Double = 2 * rect_width + xoff
-  var playerColor: Color = if (util.Random.nextBoolean()) BLUE else YELLOW
+  var playerColor: Color = YELLOW
+  //if (util.Random.nextBoolean()) BLUE else YELLOW
   var hexagons: Seq[Hexagon] = Seq()
   var ignoreInput = false
   display.addEventHandler(MouseEvent.MOUSE_PRESSED, new MouseEventHandler())
@@ -129,13 +130,13 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
           won = solve(h.id)
         }
       })
-      playerColor = if (marked) complementaryColor(playerColor) else playerColor
       draw()
       won match {
         case Some(color) => onWin(color)
         case None => ()
       }
     }
+    playerColor = complementaryColor(playerColor)
   }
 
   var toMark: (Double, Double, Boolean) = _
@@ -267,7 +268,12 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
       yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
     renderText(s"Yellow : $yellowScore points", y = 4 * getHeight / 5, color = YELLOW,
       yOffset = getGraphicsContext2D.getFont.getSize + 5, fontHeightMultiplier = 1.25)
-    table.markPending(blueScore > currentBlueScore || yellowScore > currentYellowScore)
+    val answeredCorrectly = blueScore > currentBlueScore || yellowScore > currentYellowScore
+    if (answeredCorrectly) {
+      import questionDisplay._
+      quiz = Quiz(quiz.questions.filter(_ != question))
+    }
+    table.markPending(answeredCorrectly)
     table.ignoreInput = false
   }
 

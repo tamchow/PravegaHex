@@ -1,4 +1,3 @@
-import java.io.File
 import javafx.application.Application
 import javafx.event.EventHandler
 import javafx.scene.Scene
@@ -16,11 +15,11 @@ class Test extends Application {
     val rootConstraints = new ColumnConstraints
     rootConstraints.setPercentWidth(50.0)
     root.getColumnConstraints.addAll(rootConstraints, rootConstraints)
-    val qdisp = new QuestionDisplay(Quiz.loadQuiz(s"${new File(".").getAbsoluteFile.getAbsolutePath}/Trial/Questions"), (0, 15, -15))
+    val qdisp = new QuestionDisplay(Quiz.loadQuiz(getParameters.getRaw.get(0)), (0, 15, -15))
     root.add(new HexDisplay(qdisp, 800, 720), 0, 0)
     qdisp.setVisible(true)
     root.add(qdisp, 1, 0)
-    root.setBackground(new Background(new BackgroundFill(Color.GREEN, null, null)))
+    root.setBackground(new Background(new BackgroundFill(Color.SILVER, null, null)))
     root.autosize()
     val scene = new Scene(root, 1370, 720)
     primaryStage.getIcons.add(new Image(classOf[Test].getResourceAsStream("/images/icon.png")))

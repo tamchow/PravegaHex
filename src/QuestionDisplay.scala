@@ -10,6 +10,7 @@ import javafx.scene.web.WebView
   */
 class QuestionDisplay(var quiz: Quiz, points: (Double, Double, Double)) extends GridPane {
   var score: java.lang.Double = _
+  var question: Question = _
   val (pass_POINTS, correct_POINTS, incorrect_POINTS) = points
 
   def prepareNewQuestion(onInput: Double => Unit) {
@@ -20,7 +21,7 @@ class QuestionDisplay(var quiz: Quiz, points: (Double, Double, Double)) extends 
     setVgap(10)
     setHgap(10)
     setMaxSize(java.lang.Double.MAX_VALUE, java.lang.Double.MAX_VALUE)
-    val question = util.Random.shuffle(quiz.questions).head
+    question = util.Random.shuffle(quiz.questions).head
     score = null
     val passPane = new BorderPane
     val passButton = new Button("Pass")
@@ -33,11 +34,10 @@ class QuestionDisplay(var quiz: Quiz, points: (Double, Double, Double)) extends 
     questionDisplay.getEngine.loadContent(question.content)
     questionDisplay.autosize()
     val answerDisplay = new GridPane
-    answerDisplay.setBackground(new Background(new BackgroundFill(Color.YELLOW, null, null)))
+    //answerDisplay.setBackground(new Background(new BackgroundFill(Color.YELLOW, null, null)))
     answerDisplay.setAlignment(Pos.CENTER)
     answerDisplay.setVgap(10)
-    val answerButtons = question.answers.map(x => createAnswerButton(x.content, new QuestionEventHandler(question.answers, onInput)))
-    quiz = Quiz(quiz.questions.filter(_ != question))
+    val answerButtons = question.answers.map(x => createAnswerButton(x, new QuestionEventHandler(question.answers, onInput)))
     val leftHConstraint = new ColumnConstraints
     leftHConstraint.setHalignment(HPos.CENTER)
     leftHConstraint.setPercentWidth(80.0)
@@ -56,12 +56,15 @@ class QuestionDisplay(var quiz: Quiz, points: (Double, Double, Double)) extends 
     for((button, index) <- answerButtons.zipWithIndex){
       answerDisplay.add(button, 0, index)
     }
-    setBackground(new Background(new BackgroundFill(Color.BLUE, null, null)))
+    //setBackground(new Background(new BackgroundFill(Color.BLUE, null, null)))
     setVisible(true)
   }
 
-  private def createAnswerButton(content: String, eventHandler: QuestionEventHandler): Button = {
-    val answerButton = new Button(content)
+  private def createAnswerButton(answer: Answer, eventHandler: QuestionEventHandler): Button = {
+    val answerButton = new Button(answer.content)
+    answerButton.setBackground(new Background(
+      new BackgroundFill(if(answer.isCorrectAnswer) Color.GREEN else Color.RED, null, null)))
+    answerButton.setTextFill(Color.WHITE)
     answerButton.addEventHandler(ActionEvent.ACTION, eventHandler)
     answerButton.setMaxWidth(java.lang.Double.MAX_VALUE)
     answerButton.autosize()

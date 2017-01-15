@@ -1,0 +1,1 @@
+scala HexQuiz.jar ./Trial/Questions
