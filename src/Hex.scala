@@ -236,6 +236,10 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
   var (yellowScore, blueScore) = (0.0, 0.0)
   val table = Table(this, NUMBER_OF_HEXAGONS, 0, markAction, onWin)
   table.draw()
+  renderText(s"Blue : $blueScore points", y = 4 * getHeight / 5, color = BLUE,
+    yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
+  renderText(s"Yellow : $yellowScore points", y = 4 * getHeight / 5, color = YELLOW,
+    yOffset = getGraphicsContext2D.getFont.getSize + 5, fontHeightMultiplier = 1.25)
   setVisible(true)
 
   def markAction(): Unit = {
@@ -258,6 +262,11 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
       case YELLOW => yellowScore += score
       case BLUE => blueScore += score
     }
+    getGraphicsContext2D.clearRect(0, 7 * getHeight / 10, getWidth, 3 * getHeight / 10)
+    renderText(s"Blue : $blueScore points", y = 4 * getHeight / 5, color = BLUE,
+      yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
+    renderText(s"Yellow : $yellowScore points", y = 4 * getHeight / 5, color = YELLOW,
+      yOffset = getGraphicsContext2D.getFont.getSize + 5, fontHeightMultiplier = 1.25)
     table.markPending(blueScore > currentBlueScore || yellowScore > currentYellowScore)
     table.ignoreInput = false
   }
@@ -273,11 +282,12 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
     val winText = s"${winnerNLoser._1._1} player won with ${winnerNLoser._1._2} points."
     val loseText = s"Losing player ${winnerNLoser._2._1} scored ${winnerNLoser._2._1} points."
     val textLength = winText.length max loseText.length
-    renderText(winText, textLength, -(getGraphicsContext2D.getFont.getSize + 5), color)
-    renderText(loseText, textLength, getGraphicsContext2D.getFont.getSize + 5, complementaryColor(color))
+    renderText(winText, textLength = textLength, yOffset = -(getGraphicsContext2D.getFont.getSize + 5), color = color)
+    renderText(loseText, textLength = textLength, yOffset = getGraphicsContext2D.getFont.getSize + 5, color = complementaryColor(color))
   }
 
-  def renderText(text: String, textLength: Int = -1, yOffset: Double = 0, color: Color = null, fontHeightMultiplier: Double = 1.0): Unit = {
+  def renderText(text: String, textLength: Int = -1, x: Double = getWidth / 2, y: Double = getHeight / 2,
+                 yOffset: Double = 0, color: Color = null, fontHeightMultiplier: Double = 1.0): Unit = {
     val gc = getGraphicsContext2D
     gc.save()
     gc.setFont(Font.font(gc.getFont.getFamily, FontWeight.BOLD, gc.getFont.getSize * fontHeightMultiplier))
@@ -285,7 +295,7 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
     gc.setStroke(color)
     val textDimension = gc.getFont.getSize
     val xOffset = textDimension * (if (textLength < 0) text.length else textLength) / 8
-    val (xStart, yStart) = (getWidth / 2 - xOffset, getHeight / 2 + yOffset)
+    val (xStart, yStart) = (x - xOffset, y + yOffset)
     gc.setTextAlign(TextAlignment.CENTER)
     gc.fillText(text, xStart, yStart)
     gc.restore()
