@@ -1,1 +1,1 @@
-scala HexQuiz.jar ./Trial/Questions
+scala HexQuiz.jar ./Trial/Questions 0 15 0

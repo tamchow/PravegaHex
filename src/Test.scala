@@ -11,11 +11,15 @@ class Test extends Application {
   override def start(primaryStage: Stage) {
     primaryStage.setTitle("Test Question")
     val root = new GridPane
-    root.setHgap(0.0)
-    val rootConstraints = new ColumnConstraints
-    rootConstraints.setPercentWidth(50.0)
-    root.getColumnConstraints.addAll(rootConstraints, rootConstraints)
-    val qdisp = new QuestionDisplay(Quiz.loadQuiz(getParameters.getRaw.get(0)), (0, 15, -15))
+    root.setHgap(100.0)
+    val rootConstraintsLeft = new ColumnConstraints
+    rootConstraintsLeft.setPercentWidth(50.0)
+    val rootConstraintsRight = new ColumnConstraints
+    rootConstraintsRight.setPercentWidth(50.0)
+    root.getColumnConstraints.addAll(rootConstraintsLeft, rootConstraintsRight)
+    val parameters = getParameters.getRaw
+    val qdisp = new QuestionDisplay(Quiz.loadQuiz(parameters.get(0)),
+      (parameters.get(1).toDouble, parameters.get(2).toDouble, parameters.get(3).toDouble))
     root.add(new HexDisplay(qdisp, 800, 720), 0, 0)
     qdisp.setVisible(true)
     root.add(qdisp, 1, 0)

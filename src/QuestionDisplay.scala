@@ -3,6 +3,7 @@ import javafx.geometry.{HPos, Pos}
 import javafx.scene.control.Button
 import javafx.scene.layout._
 import javafx.scene.paint.Color
+import javafx.scene.text.TextAlignment
 import javafx.scene.web.WebView
 
 /**
@@ -25,6 +26,7 @@ class QuestionDisplay(var quiz: Quiz, points: (Double, Double, Double)) extends 
     score = null
     val passPane = new BorderPane
     val passButton = new Button("Pass")
+    passButton.setTextAlignment(TextAlignment.CENTER)
     passButton.addEventHandler(ActionEvent.ACTION, new QuestionEventHandler(question.answers, onInput))
     passButton.setMaxWidth(java.lang.Double.MAX_VALUE)
     passButton.setPrefHeight(40)
@@ -62,6 +64,7 @@ class QuestionDisplay(var quiz: Quiz, points: (Double, Double, Double)) extends 
 
   private def createAnswerButton(answer: Answer, eventHandler: QuestionEventHandler): Button = {
     val answerButton = new Button(answer.content)
+    answerButton.setTextAlignment(TextAlignment.CENTER)
     answerButton.setBackground(new Background(
       new BackgroundFill(if(answer.isCorrectAnswer) Color.GREEN else Color.RED, null, null)))
     answerButton.setTextFill(Color.WHITE)
