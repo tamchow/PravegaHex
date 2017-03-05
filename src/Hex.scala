@@ -7,26 +7,6 @@ import javafx.scene.input.MouseEvent
 import javafx.scene.paint.Color
 import javafx.scene.text.{Font, FontWeight, TextAlignment}
 
-object HexConstants {
-  val LENGTH = 40
-  val RECTANGLE_WIDTH_SCALE = 1.421
-  val SCREEN_WIDTH_SCALE = 20
-  val RECTANGLE_HEIGHT_SCALE = 1
-  val SCREEN_HEIGHT_SCALE = 3
-  val PLAYER_2_COLOR = Color.YELLOW
-  val PLAYER_1_COLOR = Color.BLUE
-  val BLANK = Color.WHITE
-  val FOCUS = Color.CORAL
-  val BLACK = Color.BLACK
-  val BORDER_COLOR = Color.GRAY
-  val NUMBER_OF_HEXAGONS = 6
-
-  def complementaryColor(color: Color): Color = color match {
-    case PLAYER_1_COLOR => PLAYER_2_COLOR
-    case PLAYER_2_COLOR => PLAYER_1_COLOR
-  }
-}
-
 /**
   * Encapsulates a hexagon cell
   */
@@ -35,12 +15,9 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
 
   import HexConstants._
 
+  private lazy val (xs, ys) = vertices.toArray.unzip
   val d = LENGTH
   val (dx, dy) = (d, Math.sqrt(3.0) * d / 2.0)
-  var color = BLANK
-  var marked = false
-  private val alpha: Char = (id % NUMBER_OF_HEXAGONS + 65).asInstanceOf[Char]
-  private val digit = (id / NUMBER_OF_HEXAGONS) + 1
   val rendered_id = s"$alpha$digit"
   val vertices = IndexedSeq(
     (x - d, y),
@@ -49,7 +26,11 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
     (x + d, y),
     (x + d / 2, y + d),
     (x - d / 2, y + d))
-  private lazy val (xs, ys) = vertices.toArray.unzip
+  val boundingRect = new Rectangle2D(x - dx, y - dy, 2 * dx, 2 * dy)
+  private val alpha: Char = (id % NUMBER_OF_HEXAGONS + 65).asInstanceOf[Char]
+  private val digit = (id / NUMBER_OF_HEXAGONS) + 1
+  var color = BLANK
+  var marked = false
 
   def draw() {
     display.save()
@@ -65,7 +46,10 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
     display.restore()
   }
 
-  val boundingRect = new Rectangle2D(x - dx, y - dy, 2 * dx, 2 * dy)
+  def update(x: Double, y: Double, player: Boolean, playerColor: Color): Boolean =
+    contains(x, y) &&
+      player && !marked &&
+      (color == BLANK || color == FOCUS)
 
   def contains(x_ : Double, y_ : Double): Boolean = {
     if (boundingRect.contains(x_, y_)) {
@@ -83,11 +67,6 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
     else false
   }
 
-  def update(x: Double, y: Double, player: Boolean, playerColor: Color): Boolean =
-    contains(x, y) &&
-      player && !marked &&
-      (color == BLANK || color == FOCUS)
-
   def mark(playerColor: Color): Unit = {
     color = playerColor
     marked = true
@@ -97,13 +76,13 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
     color = FOCUS
   }
 
-  def defocus(): Unit = {
-    color = BLANK
-  }
-
   def unmark(): Unit = {
     defocus()
     marked = false
+  }
+
+  def defocus(): Unit = {
+    color = BLANK
   }
 }
 
@@ -111,17 +90,32 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
 
   import HexConstants._
 
-  private val gc = display.getGraphicsContext2D
-
+  lazy val bugCheck: String = hexagons.map(_.id).
+    map(id => s"$id is member of edges ${nameEdges(edge(id))}and has neighbours: ${Neighbours(edge(id)).map(_ + id)}").
+    mkString("\n")
   val rect_width: Double = LENGTH * number_of_hexagons * RECTANGLE_WIDTH_SCALE
   val rect_height: Int = (LENGTH * number_of_hexagons + 1) * RECTANGLE_HEIGHT_SCALE
   val xoffset: Double = 2 * rect_width + xoff
+  val Neighbours = Map((true, false, true, false) -> Seq(1, number_of_hexagons, number_of_hexagons + 1),
+    (false, true, true, false) -> Seq(-1, number_of_hexagons, number_of_hexagons - 1),
+    (true, false, false, true) -> Seq(1, -number_of_hexagons, -number_of_hexagons + 1),
+    (false, true, false, true) -> Seq(-1, -number_of_hexagons, -number_of_hexagons - 1),
+    (true, false, false, false) -> Seq(1, number_of_hexagons, number_of_hexagons + 1,
+      -number_of_hexagons, -number_of_hexagons + 1),
+    (false, true, false, false) -> Seq(-1, number_of_hexagons, number_of_hexagons - 1,
+      -number_of_hexagons, -number_of_hexagons - 1),
+    (false, false, true, false) -> Seq(1, -1, number_of_hexagons, number_of_hexagons - 1, number_of_hexagons + 1),
+    (false, false, false, true) -> Seq(1, -1, -number_of_hexagons, -number_of_hexagons - 1, -number_of_hexagons + 1),
+    (false, false, false, false) -> Seq(-1, +1, number_of_hexagons, -number_of_hexagons,
+      number_of_hexagons + 1, number_of_hexagons - 1, -number_of_hexagons + 1, -number_of_hexagons - 1))
+  private val gc = display.getGraphicsContext2D
   var playerColor: Color = PLAYER_2_COLOR
+  display.addEventHandler(MouseEvent.MOUSE_PRESSED, new MouseEventHandler())
+  start()
   //if (util.Random.nextBoolean()) BLUE else YELLOW
   var hexagons: Seq[Hexagon] = Seq()
   var ignoreInput = false
-  display.addEventHandler(MouseEvent.MOUSE_PRESSED, new MouseEventHandler())
-  start()
+  var toMark: (Double, Double, Boolean) = _
 
   def start() {
     var id = 0
@@ -147,56 +141,6 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
     gc.restore()
   }
 
-  def draw() {
-    for (hexagon <- hexagons) {
-      hexagon.draw()
-    }
-  }
-
-  def markPending(willMark: Boolean): Unit = {
-    val (x, y, clicked) = toMark
-    val h = findHexagonContaining(x, y)
-    if(h.marked) h.unmark() else h.defocus()
-    if (willMark) {
-      var won: Option[Color] = None
-      if (h.update(x, y, clicked, playerColor)) {
-        h.mark(playerColor)
-        won = solve(h.id)
-      }
-      won match {
-        case Some(color) => onWin(color)
-        case None => ()
-      }
-    }
-    h.draw()
-    playerColor = complementaryColor(playerColor)
-  }
-
-  def findHexagonContaining(x: Double, y: Double): Hexagon = hexagons.find(_.contains(x, y)).
-    getOrElse(throw new NoSuchElementException(s"Click point ($x,$y) doesn't exist"))
-
-  var toMark: (Double, Double, Boolean) = _
-
-  class MouseEventHandler() extends EventHandler[MouseEvent] {
-    override def handle(event: MouseEvent): Unit = {
-      if (!ignoreInput) {
-        val (x, y) = (event.getSceneX, event.getSceneY)
-        val clicked = event.isPrimaryButtonDown || event.isSecondaryButtonDown
-        val selectedHexagon = findHexagonContaining(x, y)
-        selectedHexagon.focus()
-        selectedHexagon.draw()
-        toMark = (x, y, clicked)
-        markAction()
-      }
-    }
-  }
-
-  private def solve(id: Int) = {
-    val color = hexagons(id).color
-    val chain = around(id, color, Seq())
-    if (beginning(chain, color) && end(chain, color)) Some(color) else None
-  }
-
   def edge(id: Int): (Boolean, Boolean, Boolean, Boolean) = {
     //corner <
     if (id == 0) (true, false, true, false)
@@ -219,6 +163,34 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
     else (false, false, false, false)
   }
 
+  def draw() {
+    for (hexagon <- hexagons) {
+      hexagon.draw()
+    }
+  }
+
+  def markPending(willMark: Boolean): Unit = {
+    val (x, y, clicked) = toMark
+    val h = findHexagonContaining(x, y)
+    if (h.marked) h.unmark() else h.defocus()
+    if (willMark) {
+      var won: Option[Color] = None
+      if (h.update(x, y, clicked, playerColor)) {
+        h.mark(playerColor)
+        won = solve(h.id)
+      }
+      won match {
+        case Some(color) => onWin(color)
+        case None => ()
+      }
+    }
+    h.draw()
+    playerColor = complementaryColor(playerColor)
+  }
+
+  def findHexagonContaining(x: Double, y: Double): Hexagon = hexagons.find(_.contains(x, y)).
+    getOrElse(throw new NoSuchElementException(s"Click point ($x,$y) doesn't exist"))
+
   def nameEdges(edges: (Boolean, Boolean, Boolean, Boolean)): String = {
     var str = ""
     if (edges._1) str += "blue_start, "
@@ -228,22 +200,11 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
     if (str.isEmpty) "none " else str
   }
 
-  lazy val bugCheck: String = hexagons.map(_.id).
-    map(id => s"$id is member of edges ${nameEdges(edge(id))}and has neighbours: ${Neighbours(edge(id)).map(_ + id)}").
-    mkString("\n")
-
-  val Neighbours = Map((true, false, true, false) -> Seq(1, number_of_hexagons, number_of_hexagons + 1),
-    (false, true, true, false) -> Seq(-1, number_of_hexagons, number_of_hexagons - 1),
-    (true, false, false, true) -> Seq(1, -number_of_hexagons, -number_of_hexagons + 1),
-    (false, true, false, true) -> Seq(-1, -number_of_hexagons, -number_of_hexagons - 1),
-    (true, false, false, false) -> Seq(1, number_of_hexagons, number_of_hexagons + 1,
-      -number_of_hexagons, -number_of_hexagons + 1),
-    (false, true, false, false) -> Seq(-1, number_of_hexagons, number_of_hexagons - 1,
-      -number_of_hexagons, -number_of_hexagons - 1),
-    (false, false, true, false) -> Seq(1, -1, number_of_hexagons, number_of_hexagons - 1, number_of_hexagons + 1),
-    (false, false, false, true) -> Seq(1, -1, -number_of_hexagons, -number_of_hexagons - 1, -number_of_hexagons + 1),
-    (false, false, false, false) -> Seq(-1, +1, number_of_hexagons, -number_of_hexagons,
-      number_of_hexagons + 1, number_of_hexagons - 1, -number_of_hexagons + 1, -number_of_hexagons - 1))
+  private def solve(id: Int) = {
+    val color = hexagons(id).color
+    val chain = around(id, color, Seq())
+    if (beginning(chain, color) && end(chain, color)) Some(color) else None
+  }
 
   private def around(id: Int, color: Color, seen: Seq[Int]): Seq[Int] = {
     //val chain = [hexagons(h).id for h in around_ if (hexagons(h).color == color)]
@@ -264,27 +225,28 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
     case PLAYER_1_COLOR => chain.exists(c => hexagons(c).blue_end)
     case PLAYER_2_COLOR => chain.exists(c => hexagons(c).yellow_end)
   }
+
+  class MouseEventHandler() extends EventHandler[MouseEvent] {
+    override def handle(event: MouseEvent): Unit = {
+      if (!ignoreInput) {
+        val (x, y) = (event.getSceneX, event.getSceneY)
+        val clicked = event.isPrimaryButtonDown || event.isSecondaryButtonDown
+        val selectedHexagon = findHexagonContaining(x, y)
+        selectedHexagon.focus()
+        selectedHexagon.draw()
+        toMark = (x, y, clicked)
+        markAction()
+      }
+    }
+  }
 }
 
 class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) extends Canvas(width, height) {
 
-  class CloseDownTask extends Task[Unit] {
-    override def call(): Unit = {
-      Thread.sleep(5000)
-      Platform.exit()
-    }
-  }
+  val table = Table(this, NUMBER_OF_HEXAGONS, 0, markAction _, onWin)
 
   import HexConstants._
-
   var (yellowScore, blueScore) = (0.0, 0.0)
-  val table = Table(this, NUMBER_OF_HEXAGONS, 0, markAction, onWin)
-  table.draw()
-  renderText(s"Blue : $blueScore points", y = 4 * getHeight / 5, color = PLAYER_1_COLOR,
-    yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
-  renderText(s"Yellow : $yellowScore points", y = 4 * getHeight / 5, color = PLAYER_2_COLOR,
-    yOffset = getGraphicsContext2D.getFont.getSize + 5, fontHeightMultiplier = 1.25)
-  setVisible(true)
 
   def markAction(): Unit = {
     table.ignoreInput = true
@@ -299,6 +261,13 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
         new Thread(new CloseDownTask).start()
     }
   }
+
+  table.draw()
+  renderText(s"Blue : $blueScore points", y = 4 * getHeight / 5, color = PLAYER_1_COLOR,
+    yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
+  renderText(s"Yellow : $yellowScore points", y = 4 * getHeight / 5, color = PLAYER_2_COLOR,
+    yOffset = getGraphicsContext2D.getFont.getSize + 5, fontHeightMultiplier = 1.25)
+  setVisible(true)
 
   def update(score: Double): Unit = {
     val (currentYellowScore, currentBlueScore) = (yellowScore, blueScore)
@@ -320,8 +289,6 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
     table.ignoreInput = false
   }
 
-  private def clearScreen() = getGraphicsContext2D.clearRect(0, 0, getWidth, getHeight)
-
   def onWin(color: Color): Unit = {
     clearScreen()
     val winnerNLoser = color match {
@@ -337,6 +304,8 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
       yOffset = getGraphicsContext2D.getFont.getSize + 5, fontHeightMultiplier = 1.75, color = complementaryColor(color))
   }
 
+  private def clearScreen() = getGraphicsContext2D.clearRect(0, 0, getWidth, getHeight)
+
   def renderText(text: String, textLength: Int = -1, x: Double = getWidth / 2, y: Double = getHeight / 2,
                  yOffset: Double = 0, color: Color = null, fontHeightMultiplier: Double = 1.0): Unit = {
     val gc = getGraphicsContext2D
@@ -350,6 +319,34 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
     gc.setTextAlign(TextAlignment.CENTER)
     gc.fillText(text, xStart, yStart)
     gc.restore()
+  }
+
+  class CloseDownTask extends Task[Unit] {
+    override def call(): Unit = {
+      Thread.sleep(5000)
+      Platform.exit()
+    }
+  }
+
+}
+
+object HexConstants {
+  val LENGTH = 40
+  val RECTANGLE_WIDTH_SCALE = 1.421
+  val SCREEN_WIDTH_SCALE = 20
+  val RECTANGLE_HEIGHT_SCALE = 1
+  val SCREEN_HEIGHT_SCALE = 3
+  val PLAYER_2_COLOR = Color.YELLOW
+  val PLAYER_1_COLOR = Color.BLUE
+  val BLANK = Color.WHITE
+  val FOCUS = Color.CORAL
+  val BLACK = Color.BLACK
+  val BORDER_COLOR = Color.GRAY
+  val NUMBER_OF_HEXAGONS = 6
+
+  def complementaryColor(color: Color): Color = color match {
+    case PLAYER_1_COLOR => PLAYER_2_COLOR
+    case PLAYER_2_COLOR => PLAYER_1_COLOR
   }
 }
 

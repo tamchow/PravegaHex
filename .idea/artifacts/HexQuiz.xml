@@ -3,7 +3,7 @@
     <output-path>$PROJECT_DIR$/</output-path>
     <root id="archive" name="HexQuiz.jar">
       <element id="module-output" name="PravegaHexFinal" />
-      <element id="library" level="application" name="scala-sdk-2.11.8" />
+      <element id="library" level="application" name="scala-sdk-2.12.1" />
     </root>
   </artifact>
 </component>
