@@ -243,9 +243,10 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
 
 class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) extends Canvas(width, height) {
 
+  import HexConstants._
+
   val table = Table(this, NUMBER_OF_HEXAGONS, 0, markAction _, onWin)
 
-  import HexConstants._
   var (yellowScore, blueScore) = (0.0, 0.0)
 
   def markAction(): Unit = {
