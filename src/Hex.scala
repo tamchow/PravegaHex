@@ -261,7 +261,6 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
         new Thread(new CloseDownTask).start()
     }
   }
-
   table.draw()
   renderText(s"Blue : $blueScore points", y = 4 * getHeight / 5, color = PLAYER_1_COLOR,
     yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
@@ -327,7 +326,6 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
       Platform.exit()
     }
   }
-
 }
 
 object HexConstants {
