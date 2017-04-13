@@ -18,7 +18,6 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
   private lazy val (xs, ys) = vertices.toArray.unzip
   val d = LENGTH
   val (dx, dy) = (d, Math.sqrt(3.0) * d / 2.0)
-  val rendered_id = s"$alpha$digit"
   val vertices = IndexedSeq(
     (x - d, y),
     (x - d / 2, y - d),
@@ -29,6 +28,7 @@ case class Hexagon(display: GraphicsContext, x: Double, y: Double, id: Int,
   val boundingRect = new Rectangle2D(x - dx, y - dy, 2 * dx, 2 * dy)
   private val alpha: Char = (id % NUMBER_OF_HEXAGONS + 65).asInstanceOf[Char]
   private val digit = (id / NUMBER_OF_HEXAGONS) + 1
+  val rendered_id = s"$alpha$digit"
   var color = BLANK
   var marked = false
 
@@ -111,11 +111,11 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
   private val gc = display.getGraphicsContext2D
   var playerColor: Color = PLAYER_2_COLOR
   display.addEventHandler(MouseEvent.MOUSE_PRESSED, new MouseEventHandler())
-  start()
   //if (util.Random.nextBoolean()) BLUE else YELLOW
   var hexagons: Seq[Hexagon] = Seq()
   var ignoreInput = false
   var toMark: (Double, Double, Boolean) = _
+  start()
 
   def start() {
     var id = 0
@@ -239,6 +239,7 @@ case class Table(display: Canvas, number_of_hexagons: Int, xoff: Int, markAction
       }
     }
   }
+
 }
 
 class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) extends Canvas(width, height) {
@@ -262,6 +263,7 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
         new Thread(new CloseDownTask).start()
     }
   }
+
   table.draw()
   renderText(s"Blue : $blueScore points", y = 4 * getHeight / 5, color = PLAYER_1_COLOR,
     yOffset = -(getGraphicsContext2D.getFont.getSize + 5), fontHeightMultiplier = 1.25)
@@ -327,6 +329,7 @@ class HexDisplay(questionDisplay: QuestionDisplay, width: Int, height: Int) exte
       Platform.exit()
     }
   }
+
 }
 
 object HexConstants {

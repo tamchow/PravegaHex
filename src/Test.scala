@@ -1,5 +1,4 @@
 import javafx.application.Application
-import javafx.event.EventHandler
 import javafx.scene.Scene
 import javafx.scene.image.Image
 import javafx.scene.input.{KeyCode, KeyEvent}
@@ -27,11 +26,9 @@ class Test extends Application {
     root.autosize()
     val scene = new Scene(root, 1370, 720)
     primaryStage.getIcons.add(new Image(classOf[Test].getResourceAsStream("/images/icon.png")))
-    scene.setOnKeyPressed(new EventHandler[KeyEvent]() {
-      def handle(ke: KeyEvent) {
-        if (ke.getCode == KeyCode.ESCAPE) {
-          primaryStage.close()
-        }
+    scene.setOnKeyPressed((ke: KeyEvent) => {
+      if (ke.getCode == KeyCode.ESCAPE) {
+        primaryStage.close()
       }
     })
     primaryStage.setScene(scene)
