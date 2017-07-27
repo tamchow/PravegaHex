@@ -5,6 +5,7 @@ Hex Game for Pravega Biology
 
 1. Python 3.5
 2. PyGame (get it using `pip install pygame`)
+3. PyQt5 (get it using `pip install pyqt5`)
 
 # Installation
 
